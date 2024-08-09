@@ -1,5 +1,4 @@
 import uuid
-from io import BytesIO
 from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 import os
@@ -16,11 +15,11 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-QDRANT_HOST = os.environ.get('QDRANT_HOST')
-QDRANT_PORT = int(os.environ.get('QDRANT_PORT', 6333))
-QDRANT_API_KEY = os.environ.get('QDRANT_API_KEY')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+QDRANT_HOST = "7b69c29e-45d9-4688-bbd8-291100ea83f6.europe-west3-0.gcp.cloud.qdrant.io"
+QDRANT_PORT = 6333 
+QDRANT_API_KEY = "_gSHg9KZHIsM419jTQjTQ2pm_Vz7GFC00epXuHBVANMotV20T5QliQ"
 
+OPENAI_API_KEY = "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"
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Inicializar clientes
@@ -77,12 +76,10 @@ def upload_file():
             return jsonify({"error": "No selected file"}), 400
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
             
-            # Procesar el archivo en memoria
-            file_stream = BytesIO(file.read())
-            
-            # Extraer texto del PDF en memoria
-            text = extract_text_from_pdf(file_stream)
+            text = extract_text_from_pdf(file_path)
             chunks = split_text_into_chunks(text)
 
             for index, chunk in enumerate(chunks):
@@ -109,13 +106,6 @@ def upload_file():
     except Exception as e:
         print(f"Error during file upload: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-def extract_text_from_pdf(file_stream):
-    reader = PyPDF2.PdfReader(file_stream)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
     
 @app.route('/query', methods=['POST'])
 def query():
