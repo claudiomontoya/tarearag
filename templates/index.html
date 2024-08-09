@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Q&A</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #f1f1f1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #chat-container {
+            border: 1px solid #444;
+            background-color: #2e2e2e;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        #file-upload {
+            margin-bottom: 10px;
+        }
+        #question-input {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="file"], button, input[type="text"] {
+            background-color: #333;
+            color: #f1f1f1;
+            border: 1px solid #555;
+            padding: 10px;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="text"] {
+            flex-grow: 1;
+        }
+        button:hover, input[type="file"]:hover, input[type="text"]:hover {
+            background-color: #444;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user {
+            color: #1e90ff;
+        }
+        .assistant {
+            color: #32cd32;
+        }
+        .system {
+            color: #f39c12;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Modelos de Generación de Texto RAG y Asistentes</h1>
+    <h2>Claudio Montoya Retamal</h2>
+    <div id="file-upload">
+        <input type="file" id="pdf-file" accept=".pdf">
+        <button onclick="uploadPDF()">Subir PDF</button>
+    </div>
+    <div id="loading" style="display: none; text-align: center; margin-bottom: 10px;">
+        <p>Procesando, por favor espera...</p>
+        <div id="progress-bar" style="width: 100%; background-color: #444;">
+            <div id="progress" style="width: 0%; height: 10px; background-color: #1e90ff;"></div>
+        </div>
+    </div>
+
+    <div id="chat-container"></div>
+    <div id="question-input">
+        <input type="text" id="question" placeholder="Haz una pregunta...">
+        <button onclick="askQuestion()">Enviar</button>
+    </div>
+
+    <script>
+        function uploadPDF()
+        {
+            const fileInput = document.getElementById('pdf-file');
+            const file = fileInput.files[0];
+            if (!file)
+            {
+                alert('Por favor, selecciona un archivo PDF');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showLoading();
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data =>
+                {
+                    addMessage('Sistema', data.message, 'system');
+                })
+                .catch(error =>
+                {
+                    console.error('Error:', error);
+                    addMessage('Sistema', 'Error al subir el archivo', 'system');
+                })
+                .finally(() =>
+                {
+                    hideLoading();
+                });
+        }
+
+        function askQuestion()
+        {
+            const questionInput = document.getElementById('question');
+            const question = questionInput.value;
+            if (!question)
+            {
+                alert('Por favor, escribe una pregunta');
+                return;
+            }
+
+            addMessage('Usuario', question, 'user');
+            showLoading();
+
+            fetch('/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question })
+            })
+                .then(response => response.json())
+                .then(data =>
+                {
+                    addMessage('Asistente', data.answer, 'assistant');
+                })
+                .catch(error =>
+                {
+                    console.error('Error:', error);
+                    addMessage('Sistema', 'Error al procesar la pregunta', 'system');
+                })
+                .finally(() =>
+                {
+                    hideLoading();
+                    questionInput.value = '';
+                });
+        }
+
+        function showLoading()
+        {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('progress').style.width = '0%';
+            animateProgressBar();
+        }
+
+        function hideLoading()
+        {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function animateProgressBar()
+        {
+            const progressBar = document.getElementById('progress');
+            let width = 0;
+            const interval = setInterval(() =>
+            {
+                if (width >= 100)
+                {
+                    width = 0; 
+                } else
+                {
+                    width += 10;
+                }
+                progressBar.style.width = width + '%';
+            }, 500); 
+        }
+        function addMessage(sender, text) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender.toLowerCase());
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>

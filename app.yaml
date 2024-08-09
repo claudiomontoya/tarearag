@@ -1,0 +1,12 @@
+runtime: python39
+entrypoint: gunicorn -b :$PORT app:app
+
+env_variables:
+  QDRANT_HOST: "7b69c29e-45d9-4688-bbd8-291100ea83f6.europe-west3-0.gcp.cloud.qdrant.io"
+  QDRANT_PORT: "6333"
+  QDRANT_API_KEY: "_gSHg9KZHIsM419jTQjTQ2pm_Vz7GFC00epXuHBVANMotV20T5QliQ"
+  OPENAI_API_KEY: "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"
+
+handlers:
+- url: /.*
+  script: auto
