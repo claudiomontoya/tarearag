@@ -76,10 +76,12 @@ def upload_file():
             return jsonify({"error": "No selected file"}), 400
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
             
-            text = extract_text_from_pdf(file_path)
+            # Procesar el archivo en memoria
+            file_stream = BytesIO(file.read())
+            
+            # Extraer texto del PDF en memoria
+            text = extract_text_from_pdf(file_stream)
             chunks = split_text_into_chunks(text)
 
             for index, chunk in enumerate(chunks):
@@ -106,6 +108,13 @@ def upload_file():
     except Exception as e:
         print(f"Error during file upload: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+def extract_text_from_pdf(file_stream):
+    reader = PyPDF2.PdfReader(file_stream)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
     
 @app.route('/query', methods=['POST'])
 def query():
